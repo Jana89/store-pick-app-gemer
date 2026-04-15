@@ -2,8 +2,9 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Macta Store Pick App",
-  description: "Store-side picking and send-to-warehouse app for retail employees."
+  title: "Macta Flow - Store Transfer Desk",
+  description:
+    "Prototype app for store teams to manage pick, pack, and send requests for online order support.",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

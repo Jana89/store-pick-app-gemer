@@ -5,32 +5,29 @@ import type { PickTask } from "@/lib/data";
 import { initialTasks } from "@/lib/data";
 
 const statusOrder: PickTask["status"][] = ["New", "Picking", "Packed", "Sent"];
+const queueTabs = ["All", "New", "Picking", "Packed", "Sent"] as const;
+
+type QueueFilter = (typeof queueTabs)[number];
 
 function Badge({ children }: { children: string }) {
-  const colors: Record<string, string> = {
-    High: "#fee2e2",
-    Medium: "#fef3c7",
-    Low: "#dcfce7",
-    New: "#dbeafe",
-    Picking: "#ede9fe",
-    Packed: "#fef3c7",
-    Sent: "#dcfce7"
+  const classes: Record<string, string> = {
+    High: "badge badge-red",
+    Medium: "badge badge-amber",
+    Low: "badge badge-green",
+    New: "badge badge-blue",
+    Picking: "badge badge-indigo",
+    Packed: "badge badge-amber",
+    Sent: "badge badge-green",
   };
 
-  return (
-    <span
-      style={{ background: colors[children] || "#e2e8f0" }}
-      className="badge"
-    >
-      {children}
-    </span>
-  );
+  return <span className={classes[children] || "badge"}>{children}</span>;
 }
 
 export default function StorePickApp() {
   const [tasks, setTasks] = useState(initialTasks);
   const [selectedId, setSelectedId] = useState(initialTasks[0]?.id ?? "");
-  const [filter, setFilter] = useState<"All" | PickTask["status"]>("All");
+  const [filter, setFilter] = useState<QueueFilter>("All");
+  const [storeView, setStoreView] = useState("Tartu Store");
 
   const selectedTask = tasks.find((task) => task.id === selectedId) ?? tasks[0];
 
@@ -39,11 +36,16 @@ export default function StorePickApp() {
     return tasks.filter((task) => task.status === filter);
   }, [tasks, filter]);
 
+  const metrics = {
+    open: tasks.filter((task) => task.status !== "Sent").length,
+    urgent: tasks.filter((task) => task.priority === "High" && task.status !== "Sent").length,
+    packed: tasks.filter((task) => task.status === "Packed").length,
+    sent: tasks.filter((task) => task.status === "Sent").length,
+  };
+
   function updateStatus(taskId: string, nextStatus: PickTask["status"]) {
     setTasks((current) =>
-      current.map((task) =>
-        task.id === taskId ? { ...task, status: nextStatus } : task
-      )
+      current.map((task) => (task.id === taskId ? { ...task, status: nextStatus } : task))
     );
   }
 
@@ -53,161 +55,219 @@ export default function StorePickApp() {
     updateStatus(task.id, nextStatus);
   }
 
-  const kpis = {
-    total: tasks.length,
-    urgent: tasks.filter((task) => task.priority === "High" && task.status !== "Sent").length,
-    waiting: tasks.filter((task) => task.status !== "Sent").length,
-    sent: tasks.filter((task) => task.status === "Sent").length
-  };
-
   return (
-    <main className="page-shell">
-      <section className="topbar">
-        <div>
-          <p className="eyebrow">Store-side operations</p>
-          <h1>Macta Store Pick App</h1>
-          <p className="subcopy">
-            For retail employees to see what to pick, pack, and send to the warehouse.
-          </p>
-        </div>
-        <div className="topbar-right">
-          <select
-            value={filter}
-            onChange={(e) => setFilter(e.target.value as "All" | PickTask["status"])}
-            className="select"
-          >
-            <option value="All">All tasks</option>
-            <option value="New">New</option>
-            <option value="Picking">Picking</option>
-            <option value="Packed">Packed</option>
-            <option value="Sent">Sent</option>
-          </select>
-        </div>
-      </section>
-
-      <section className="kpi-grid">
-        <article className="card">
-          <span className="kpi-label">Open tasks</span>
-          <strong className="kpi-value">{kpis.waiting}</strong>
-        </article>
-        <article className="card">
-          <span className="kpi-label">Urgent</span>
-          <strong className="kpi-value">{kpis.urgent}</strong>
-        </article>
-        <article className="card">
-          <span className="kpi-label">Sent today</span>
-          <strong className="kpi-value">{kpis.sent}</strong>
-        </article>
-        <article className="card">
-          <span className="kpi-label">All tasks</span>
-          <strong className="kpi-value">{kpis.total}</strong>
-        </article>
-      </section>
-
-      <section className="content-grid">
-        <div className="card list-card">
-          <div className="section-header">
-            <h2>Pick requests</h2>
-            <p>{visibleTasks.length} shown</p>
+    <main className="app-shell">
+      <aside className="sidebar">
+        <div className="brand-block">
+          <div className="brand-mark">M</div>
+          <div>
+            <div className="brand-title">Macta Flow</div>
+            <div className="brand-subtitle">Store transfer workspace</div>
           </div>
+        </div>
 
-          <div className="task-list">
-            {visibleTasks.map((task) => (
+        <div className="sidebar-section">
+          <div className="sidebar-label">Location</div>
+          <button className="sidebar-store-button">{storeView}</button>
+        </div>
+
+        <div className="sidebar-section">
+          <div className="sidebar-label">Queue</div>
+          <div className="sidebar-nav">
+            {queueTabs.map((tab) => (
               <button
-                key={task.id}
-                className={`task-row ${selectedTask?.id === task.id ? "task-row-active" : ""}`}
-                onClick={() => setSelectedId(task.id)}
+                key={tab}
+                onClick={() => setFilter(tab)}
+                className={`sidebar-nav-item ${filter === tab ? "sidebar-nav-item-active" : ""}`}
               >
-                <div className="task-row-main">
-                  <div>
-                    <div className="task-title">{task.id}</div>
-                    <div className="task-meta">{task.orderId} · {task.customer}</div>
-                  </div>
-                  <Badge>{task.priority}</Badge>
-                </div>
-                <div className="task-row-bottom">
-                  <Badge>{task.status}</Badge>
-                  <span>{task.requestedAt}</span>
-                </div>
+                <span>{tab === "All" ? "All requests" : tab}</span>
+                <span className="sidebar-count">
+                  {tab === "All" ? tasks.length : tasks.filter((task) => task.status === tab).length}
+                </span>
               </button>
             ))}
           </div>
         </div>
 
-        <div className="card detail-card">
-          {selectedTask ? (
-            <>
-              <div className="section-header">
-                <div>
-                  <h2>{selectedTask.id}</h2>
-                  <p>{selectedTask.orderId} · Send to {selectedTask.shipTo}</p>
-                </div>
-                <Badge>{selectedTask.status}</Badge>
-              </div>
-
-              <div className="detail-grid">
-                <div className="detail-block">
-                  <span className="detail-label">Customer</span>
-                  <strong>{selectedTask.customer}</strong>
-                </div>
-                <div className="detail-block">
-                  <span className="detail-label">Requested at</span>
-                  <strong>{selectedTask.requestedAt}</strong>
-                </div>
-                <div className="detail-block">
-                  <span className="detail-label">Priority</span>
-                  <strong>{selectedTask.priority}</strong>
-                </div>
-                <div className="detail-block">
-                  <span className="detail-label">Destination</span>
-                  <strong>{selectedTask.shipTo}</strong>
-                </div>
-              </div>
-
-              <div className="detail-section">
-                <h3>Items to pick</h3>
-                <div className="items-table">
-                  <div className="items-head items-row">
-                    <span>SKU</span>
-                    <span>Item</span>
-                    <span>Qty</span>
-                    <span>Location</span>
-                  </div>
-                  {selectedTask.items.map((item) => (
-                    <div key={item.sku} className="items-row">
-                      <span>{item.sku}</span>
-                      <span>{item.name}</span>
-                      <span>{item.qty}</span>
-                      <span>{item.location}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="detail-section">
-                <h3>Notes</h3>
-                <p className="notes-box">{selectedTask.notes}</p>
-              </div>
-
-              <div className="button-row">
-                <button className="primary-btn" onClick={() => advanceTask(selectedTask)}>
-                  Mark next step
-                </button>
-                <button className="secondary-btn" onClick={() => updateStatus(selectedTask.id, "Picking")}>
-                  Set Picking
-                </button>
-                <button className="secondary-btn" onClick={() => updateStatus(selectedTask.id, "Packed")}>
-                  Set Packed
-                </button>
-                <button className="secondary-btn" onClick={() => updateStatus(selectedTask.id, "Sent")}>
-                  Set Sent
-                </button>
-              </div>
-            </>
-          ) : (
-            <p>No task selected.</p>
-          )}
+        <div className="sidebar-focus-card">
+          <div className="sidebar-focus-title">Today’s priority</div>
+          <p>
+            Complete urgent store transfers before the next warehouse dispatch and reduce order delays.
+          </p>
+          <button className="sidebar-focus-button" onClick={() => setFilter("New")}>
+            Open urgent requests
+          </button>
         </div>
+      </aside>
+
+      <section className="workspace">
+        <header className="workspace-header">
+          <div>
+            <div className="eyebrow">Retail fulfillment demo</div>
+            <h1>Store Transfer Desk</h1>
+            <p className="subcopy">
+              A simple view for store teams to see what needs to be picked, packed, and sent to support online orders.
+            </p>
+          </div>
+
+          <div className="header-actions">
+            <button className="ghost-button">Transfer log</button>
+            <button className="primary-button">Mark dispatch ready</button>
+          </div>
+        </header>
+
+        <section className="metric-grid">
+          <article className="metric-card">
+            <span className="metric-label">Open requests</span>
+            <strong className="metric-value">{metrics.open}</strong>
+          </article>
+          <article className="metric-card">
+            <span className="metric-label">Urgent</span>
+            <strong className="metric-value">{metrics.urgent}</strong>
+          </article>
+          <article className="metric-card">
+            <span className="metric-label">Packed</span>
+            <strong className="metric-value">{metrics.packed}</strong>
+          </article>
+          <article className="metric-card">
+            <span className="metric-label">Sent today</span>
+            <strong className="metric-value">{metrics.sent}</strong>
+          </article>
+        </section>
+
+        <section className="workspace-grid">
+          <div className="panel">
+            <div className="panel-header">
+              <div>
+                <h2>Transfer requests</h2>
+                <p>{visibleTasks.length} requests in this view</p>
+              </div>
+              <div className="inline-tabs">
+                {queueTabs.map((tab) => (
+                  <button
+                    key={tab}
+                    onClick={() => setFilter(tab)}
+                    className={`inline-tab ${filter === tab ? "inline-tab-active" : ""}`}
+                  >
+                    {tab}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="task-list">
+              {visibleTasks.map((task) => (
+                <button
+                  key={task.id}
+                  className={`task-card ${selectedTask?.id === task.id ? "task-card-active" : ""}`}
+                  onClick={() => setSelectedId(task.id)}
+                >
+                  <div className="task-card-top">
+                    <div>
+                      <div className="task-id">{task.id}</div>
+                      <div className="task-order">{task.orderId} · {task.customer}</div>
+                    </div>
+                    <Badge>{task.priority}</Badge>
+                  </div>
+
+                  <div className="task-card-mid">
+                    <span className="task-line">Send to {task.shipTo}</span>
+                    <span className="task-line">Requested {task.requestedAt}</span>
+                  </div>
+
+                  <div className="task-card-bottom">
+                    <Badge>{task.status}</Badge>
+                    <span>{task.items.length} item{task.items.length > 1 ? "s" : ""}</span>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="panel detail-panel">
+            {selectedTask ? (
+              <>
+                <div className="panel-header detail-header">
+                  <div>
+                    <h2>{selectedTask.id}</h2>
+                    <p>{selectedTask.orderId} · Requested by warehouse operations</p>
+                  </div>
+                  <Badge>{selectedTask.status}</Badge>
+                </div>
+
+                <div className="detail-summary-grid">
+                  <div className="summary-card">
+                    <span className="summary-label">Customer</span>
+                    <strong>{selectedTask.customer}</strong>
+                  </div>
+                  <div className="summary-card">
+                    <span className="summary-label">Destination</span>
+                    <strong>{selectedTask.shipTo}</strong>
+                  </div>
+                  <div className="summary-card">
+                    <span className="summary-label">Requested</span>
+                    <strong>{selectedTask.requestedAt}</strong>
+                  </div>
+                  <div className="summary-card">
+                    <span className="summary-label">Priority</span>
+                    <strong>{selectedTask.priority}</strong>
+                  </div>
+                </div>
+
+                <div className="detail-block">
+                  <h3>What to send</h3>
+                  <div className="table-wrap">
+                    <div className="table-row table-head">
+                      <span>SKU</span>
+                      <span>Product</span>
+                      <span>Qty</span>
+                      <span>Store location</span>
+                    </div>
+                    {selectedTask.items.map((item) => (
+                      <div key={item.sku} className="table-row">
+                        <span>{item.sku}</span>
+                        <span>{item.name}</span>
+                        <span>{item.qty}</span>
+                        <span>{item.location}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="detail-block">
+                  <h3>Operational note</h3>
+                  <div className="note-box">{selectedTask.notes}</div>
+                </div>
+
+                <div className="detail-block soft-panel">
+                  <h3>Recommended flow</h3>
+                  <div className="workflow-list">
+                    <div className="workflow-item">1. Pick items from the assigned shelf</div>
+                    <div className="workflow-item">2. Pack the transfer and attach store reference</div>
+                    <div className="workflow-item">3. Mark as sent so warehouse can expect arrival</div>
+                  </div>
+                </div>
+
+                <div className="action-row">
+                  <button className="primary-button" onClick={() => advanceTask(selectedTask)}>
+                    Mark next step
+                  </button>
+                  <button className="ghost-button" onClick={() => updateStatus(selectedTask.id, "Picking")}>
+                    Set Picking
+                  </button>
+                  <button className="ghost-button" onClick={() => updateStatus(selectedTask.id, "Packed")}>
+                    Set Packed
+                  </button>
+                  <button className="ghost-button" onClick={() => updateStatus(selectedTask.id, "Sent")}>
+                    Set Sent
+                  </button>
+                </div>
+              </>
+            ) : (
+              <div className="empty-state">No request selected.</div>
+            )}
+          </div>
+        </section>
       </section>
     </main>
   );

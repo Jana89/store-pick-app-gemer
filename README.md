@@ -1,14 +1,6 @@
-# Macta Store Pick App
+# Macta Flow - Store Transfer Desk
 
-A small Next.js app for store employees to see pick requests, pick items, pack them, and mark them as sent to the warehouse.
-
-## Deploy to Vercel
-
-1. Push this folder to a GitHub repository.
-2. Import the repo into Vercel.
-3. Framework preset: **Next.js**.
-4. No special environment variables are required.
-5. Deploy.
+Prototype Next.js app for store employees to manage transfer requests that support online order fulfillment.
 
 ## Run locally
 
@@ -17,14 +9,19 @@ npm install
 npm run dev
 ```
 
-Then open http://localhost:3000
+## Deploy to Vercel
 
-## App structure
+1. Push this project to GitHub
+2. Import the repository into Vercel
+3. Framework preset: **Next.js**
+4. Deploy
 
-- `app/` - Next.js App Router files
-- `components/StorePickApp.tsx` - main UI
-- `lib/data.ts` - mock task data
+## App purpose
 
-## Notes
+This prototype shows how a store team can:
+- see new warehouse transfer requests
+- pick items from store shelves
+- pack them for transfer
+- mark them as sent
 
-This prototype uses mock data and client-side state only. It is intended to be a clean Vercel-ready starting point for a store-facing workflow app.
+It is designed to visually match the main admin-side Macta Ops Hub product family.
