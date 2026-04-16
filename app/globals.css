@@ -194,8 +194,8 @@ button {
 
 .workspace-header h1 {
   margin: 6px 0;
-  font-size: 32px;
-  line-height: 1.1;
+  font-size: 1.5rem;
+  line-height: 2rem;
 }
 
 .subcopy {
@@ -264,6 +264,7 @@ button {
 .panel-header h2,
 .detail-block h3 {
   margin: 0;
+  font-size: 1.2rem;
 }
 
 .panel-header p {
